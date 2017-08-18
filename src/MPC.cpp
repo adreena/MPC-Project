@@ -7,7 +7,7 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 size_t N = 5;
-double dt = 0.05;
+double dt = 0.01;
 
 size_t x_start = 0;
 size_t y_start = x_start + N ;
@@ -29,6 +29,7 @@ size_t a_start = delta_start + N-1;
 //
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
+const double ref_v = 35;
 
 class FG_eval {
  public:
@@ -44,11 +45,11 @@ class FG_eval {
     // the Solver function below.
     cout << fg.size()<<endl;
     fg[0] = 0;
-
+    cout<<"***-"<<endl;
     for(int i=0; i<N; i++){
       fg[0] += CppAD::pow(vars[cte_start+i],2);
       fg[0] += CppAD::pow(vars[epsi_start+i],2);
-      fg[0] += CppAD::pow(vars[v_start+i] - 35 ,2);
+      fg[0] += CppAD::pow(vars[v_start+i] - ref_v ,2);
     }
 
     for(int i=0; i<N-1; i++){
@@ -67,8 +68,9 @@ class FG_eval {
     fg[1+v_start] = vars[v_start];
     fg[1+cte_start] = vars[cte_start];
     fg[1+epsi_start] = vars[epsi_start];
-
+    cout<< "****"<<endl;
     for(int i =1 ; i< N; i++){
+      cout<<"vars: "<<vars<<endl;
       AD<double> x0 = vars[x_start + i - 1];
       AD<double> x1 = vars[x_start + i];
 
@@ -87,25 +89,19 @@ class FG_eval {
       AD<double> epsi0 = vars[epsi_start + i - 1];
       AD<double> epsi1 = vars[epsi_start + i];
 
-      AD<double> delta0 = vars[delta_start + i];
-      AD<double> a0 = vars[a_start + i];
+      AD<double> delta0 = vars[delta_start + i -1];
+      AD<double> a0 = vars[a_start + i - 1];
 
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-      AD<double> dpsi0 = CppAD::atan(coeffs[1]);
-      cout<<"***----"<<endl;
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2]* pow(x0,2) + coeffs[3]* pow(x0,3);
+      AD<double> dpsi0 = CppAD::atan(coeffs[1] + 2*coeffs[2]*x0 + 3*coeffs[3]*pow(x0,2));
+      cout<<"FG Start"<<endl;
       fg[1+x_start+i] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[1+y_start+i] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
       fg[1+psi_start+i] = psi1 - (psi0 + (v0 /Lf) * delta0 * dt);
       fg[1+v_start+i] = v1 - (v0 + a0 * dt);
       fg[1+cte_start+i] = cte1 -( f0 - y0 + v0 * CppAD::sin(epsi0) * dt);
-      fg[1+epsi_start+i] = epsi1 - (psi0 - dpsi0 - (v0/Lf) * delta0*dt);
-      cout<<fg[1+x_start+i]<<endl;
-      cout<<fg[1+y_start+i]<<endl;
-      cout<<fg[1+psi_start+i]<<endl;
-      cout<<fg[1+v_start+i]<<endl;
-      cout<<fg[1+cte_start+i]<<endl;
-      cout<<fg[1+epsi_start+i]<<endl;
-
+      fg[1+epsi_start+i] = epsi1 - (psi0 - dpsi0 + (v0/Lf) * delta0*dt);
+      cout<< "FG LOOP:"<<i<<endl;
     }
   }
 };
@@ -136,20 +132,21 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   for (int i = 0; i < n_vars; i++) {
     vars[i] = 0.0;
   }
-  double dpsi = CppAD::atan(coeffs[1]);
-  double cte = coeffs[0] + coeffs[1]*state[0] - state[1];
-  double epsi = state[2] - dpsi;
 
-  vars[x_start] = state[0];
-  vars[y_start] = state[1];
-  vars[psi_start] = state[2];
-  vars[v_start] = state[3];
+  double x = state[0];
+  double y = state[1];
+  double psi = state[2];
+  double v = state[3];
+  double cte  = state[4];
+  double epsi = state[5];
+
+  vars[x_start] = x;
+  vars[y_start] = y;
+  vars[psi_start] = psi;
+  vars[v_start] = v;
   vars[cte_start] = cte;
   vars[epsi_start] = epsi;
-  // vars[delta_start]=0;
-  // vars[a_start)]=0;
-  cout<< vars<<endl;
-  cout << "-----"<<endl;
+
 
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
@@ -176,17 +173,17 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     constraints_lowerbound[i] = 0;
     constraints_upperbound[i] = 0;
   }
-  constraints_lowerbound[x_start] = state[0];
-  constraints_upperbound[x_start] = state[0];
+  constraints_lowerbound[x_start] = x;
+  constraints_upperbound[x_start] = x;
 
-  constraints_lowerbound[y_start] = state[1];
-  constraints_upperbound[y_start] = state[1];
+  constraints_lowerbound[y_start] = y;
+  constraints_upperbound[y_start] = y;
 
-  constraints_lowerbound[psi_start] = state[2];
-  constraints_upperbound[psi_start] = state[2];
+  constraints_lowerbound[psi_start] = psi;
+  constraints_upperbound[psi_start] = psi;
 
-  constraints_lowerbound[v_start] = state[3];
-  constraints_upperbound[v_start] = state[3];
+  constraints_lowerbound[v_start] = v;
+  constraints_upperbound[v_start] = v;
 
   constraints_lowerbound[cte_start] = cte;
   constraints_upperbound[cte_start] = cte;
@@ -226,7 +223,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   // Check some of the solution values
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
-
+  // cout<<"Solution: "<< solution<<endl;
   // Cost
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
@@ -236,7 +233,19 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {solution.x[x_start], solution.x[y_start],
-          solution.x[psi_start], solution.x[v_start],
-          solution.x[delta_start],   solution.x[a_start]};
+  // cout<<"X: "<<solution.x[x_start+1]<< "Y: "<< solution.x[y_start+1]<<endl;
+  // cout <<"psi: "<< solution.x[psi_start +1]<< "v:"<< solution.x[v_start+1]<<endl;
+  // cout<<"cte: "<< solution.x[cte_start +1]<< "epsi: "<< solution.x[epsi_start+1]<<endl;
+  // cout<<"delta:"<< solution.x[delta_start]<<"a: "<<   solution.x[a_start]<<endl;
+  vector<double> result;
+  result.push_back(solution.x[delta_start]);
+  result.push_back(solution.x[a_start]);
+
+  for(int i = 0 ; i<N-1 ; i++){
+    result.push_back(solution.x[x_start+1+i]);
+    result.push_back(solution.x[y_start+1+i]);
+  }
+
+
+  return  result ;
 }
