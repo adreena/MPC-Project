@@ -12,6 +12,7 @@ class MPC {
   // added 2 vectors to cache x & y values and avoid multiple loops
   vector<double> N_x;
   vector<double> N_y;
+  vector<double> N_psi;
 
   MPC();
 

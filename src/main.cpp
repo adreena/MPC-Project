@@ -67,31 +67,25 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
-void read_csv(Eigen::VectorXd &ptsx,Eigen::VectorXd &ptsy,string file_name){
-  ifstream file ( file_name);
-  string x, y;
-  cout<< file_name << endl;
-  int i =0;
-  getline(file, x, '\n');
-  while (getline(file, x, ',')) {
-    ptsx(i) = atof(x.c_str());
+const double dt = 0.01;
+const double Lf = 2.67;
 
-    getline(file, y, '\n') ;
-    ptsy(i) = atof(y.c_str());
-    i++;
-  }
-}
 
 int main() {
   uWS::Hub h;
 
   // MPC is initialized here!
   MPC mpc;
-  // Eigen::VectorXd ptsx(70);
-  // Eigen::VectorXd ptsy(70);
-  // read_csv(ptsx, ptsy, "../lake_track_waypoints.csv");
 
-  h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  ofstream cte_vals_file;
+  cte_vals_file.open("../plot/cte_vals.txt");
+  ofstream delta_vals_file;
+  delta_vals_file.open("../plot/delta_vals.txt");
+  ofstream v_vals_file;
+  v_vals_file.open("../plot/v_vals.txt");
+
+  int count =0;
+  h.onMessage([&mpc, &cte_vals_file, &delta_vals_file, &v_vals_file, &count](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -113,66 +107,80 @@ int main() {
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
 
+          
+          double throttle_0 = j[1]["throttle"];
+          double steer_0 = j[1]["steering_angle"];
 
-          Eigen::VectorXd car_x;
-          Eigen::VectorXd car_y;
+          Eigen::VectorXd car_ptsx(ptsx.size());
+          Eigen::VectorXd car_ptsy(ptsx.size());
 
           // transform point to car's coordinates
           for (int i = 0; i < ptsx.size(); i++) {
             double dx = ptsx[i] - px;
             double dy = ptsy[i] - py;
-            car_x[i] = dx * cos(-psi) - dy * sin(-psi);
-            car_y[i] = dx * sin(-psi) + dy * cos(-psi);
+            car_ptsx[i] = dx * cos(-psi) - dy * sin(-psi);
+            car_ptsy[i] = dx * sin(-psi) + dy * cos(-psi);
           }
+          // after converting to car's cooridante system starting values are:
+          // px = 0, py = 0 , psi = 0
 
-          // cout<<"Size:"<< ptsx.size()<<endl;
-          // Eigen::VectorXd mapped_ptsx(ptsx.size());
-          // Eigen::VectorXd mapped_ptsy(ptsx.size());
-          //
-          // for(int i=0 ; i< ptsx.size(); i++){
-          //   mapped_ptsx[i] = ptsx[i];
-          //   mapped_ptsy[i] = ptsy[i];
-          // }
-          // cout<<"PTSX"<<mapped_ptsx<<endl;
-          // cout<<"PTSY"<<mapped_ptsx<<endl;
-          auto coeffs = polyfit(car_x, car_y, 3);
-          cout<<"COEFFS: "<<coeffs[0]<<" , "<<coeffs[1]<<endl;
-          double dpsi = atan(coeffs[1] + 2*coeffs[2]*px + 3*coeffs[3]*pow(px,2));
-          double cte = polyeval(coeffs, px) - py;
-          double epsi = psi - dpsi;
-          cout<<"cte"<<cte<<endl;
-          cout<<"epsi"<<epsi<<endl;
+          auto coeffs = polyfit(car_ptsx, car_ptsy, 3);
+          double epsi = 0 - atan(coeffs[1]);
+          double cte = coeffs[0];
 
-          /*
-          * TODO: Calculate steering angle and throttle using MPC.
-          *
-          * Both are in between [-1, 1].
-          *
-          */
+          // considering latency of dt to predict values at t+1
+          
+          double px_mod = v * dt;
+          double py_mod = 0;
+          double psi_mod = -(v/Lf)* steer_0 * dt;
+          double v_mod = v +  throttle_0 * dt;
+          double cte_mod = cte + v * sin(epsi) * dt;
+          double epsi_mod = epsi + (v/Lf) * steer_0 * dt;
 
 
           double steer_value;
           double throttle_value;
+
           Eigen::VectorXd current_state(6);
-          current_state << px, py, psi, v, cte, epsi;
+
+          current_state << px_mod, py_mod, psi_mod, v_mod, cte_mod, epsi_mod;
 
           auto vars = mpc.Solve(current_state,coeffs);
-          steer_value = vars[0];
+          steer_value = -vars[0]/deg2rad(25);
           throttle_value = vars[1];
+
+          //keeping values to plot information
+          delta_vals_file << vars[0]<<"\n";
+          cte_vals_file << vars[2]<<"\n";
+          v_vals_file << vars[3]<<"\n";
+
+          if(count >200){
+            delta_vals_file.close();
+            cte_vals_file.close();
+            v_vals_file.close();
+          }
+          cout<< "Count: "<<count<<endl;
+          count++;
+
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value/ deg2rad(25);
+          msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
-          cout<<"*"<<endl;
+          
           //Display the MPC predicted trajectory
 
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
-          msgJson["mpc_x"] = mpc.N_x;
-          msgJson["mpc_y"] = mpc.N_y;
+          vector<double> mpc_x_vals = {}; //mpc.N_x;
+          vector<double> mpc_y_vals = {}; //mpc.N_y;
+          for (int i =0 ; i<mpc.N_x.size() ; i++){
+            mpc_x_vals.push_back(mpc.N_x[i]);
+            mpc_y_vals.push_back(mpc.N_y[i]);
+          }
+        
 
           //Display the waypoints/reference line
           vector<double> next_x_vals;
@@ -180,12 +188,18 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
-          for (int i =1 ; i< 6; i++){
-            next_x_vals.push_back(car_x[i]);
-            next_y_vals.push_back(car_y[i]);
+          for (int i =0 ; i<car_ptsx.size() ; i++){
+            next_x_vals.push_back(car_ptsx[i]);
+            next_y_vals.push_back(car_ptsy[i]);
+            // mpc_x_vals.push_back(car_ptsx[i]);
+            // mpc_y_vals.push_back(car_ptsy[i]);
+
           }
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
+          msgJson["mpc_x"] = mpc_x_vals;
+          msgJson["mpc_y"] = mpc_y_vals;
+          
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
