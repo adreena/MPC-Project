@@ -67,7 +67,7 @@ Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
   return result;
 }
 
-const double dt = 0.01;
+const double dt = 0.05;
 const double Lf = 2.67;
 
 
@@ -77,6 +77,8 @@ int main() {
   // MPC is initialized here!
   MPC mpc;
 
+
+  //storing cte , delta and v values for plotting
   ofstream cte_vals_file;
   cte_vals_file.open("../plot/cte_vals.txt");
   ofstream delta_vals_file;
@@ -114,7 +116,7 @@ int main() {
           Eigen::VectorXd car_ptsx(ptsx.size());
           Eigen::VectorXd car_ptsy(ptsx.size());
 
-          // transform point to car's coordinates
+          // transform points to car's coordinates system
           for (int i = 0; i < ptsx.size(); i++) {
             double dx = ptsx[i] - px;
             double dy = ptsy[i] - py;
@@ -129,7 +131,6 @@ int main() {
           double cte = coeffs[0];
 
           // considering latency of dt to predict values at t+1
-          
           double px_mod = v * dt;
           double py_mod = 0;
           double psi_mod = -(v/Lf)* steer_0 * dt;
@@ -146,15 +147,17 @@ int main() {
           current_state << px_mod, py_mod, psi_mod, v_mod, cte_mod, epsi_mod;
 
           auto vars = mpc.Solve(current_state,coeffs);
+
+
           steer_value = -vars[0]/deg2rad(25);
           throttle_value = vars[1];
 
-          //keeping values to plot information
+          //keeping 1000 values to plot information
           delta_vals_file << vars[0]<<"\n";
           cte_vals_file << vars[2]<<"\n";
           v_vals_file << vars[3]<<"\n";
 
-          if(count >200){
+          if(count > 1000){
             delta_vals_file.close();
             cte_vals_file.close();
             v_vals_file.close();
@@ -174,13 +177,8 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
-          vector<double> mpc_x_vals = {}; //mpc.N_x;
-          vector<double> mpc_y_vals = {}; //mpc.N_y;
-          for (int i =0 ; i<mpc.N_x.size() ; i++){
-            mpc_x_vals.push_back(mpc.N_x[i]);
-            mpc_y_vals.push_back(mpc.N_y[i]);
-          }
-        
+          vector<double> mpc_x_vals = mpc.N_x;
+          vector<double> mpc_y_vals = mpc.N_y;
 
           //Display the waypoints/reference line
           vector<double> next_x_vals;
@@ -191,8 +189,6 @@ int main() {
           for (int i =0 ; i<car_ptsx.size() ; i++){
             next_x_vals.push_back(car_ptsx[i]);
             next_y_vals.push_back(car_ptsy[i]);
-            // mpc_x_vals.push_back(car_ptsx[i]);
-            // mpc_y_vals.push_back(car_ptsy[i]);
 
           }
           msgJson["next_x"] = next_x_vals;

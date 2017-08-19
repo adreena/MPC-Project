@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 5;
-double dt = 0.01;
+size_t N = 10;
+double dt = 0.05;
 
 size_t x_start = 0;
 size_t y_start = x_start + N ;
@@ -29,15 +29,15 @@ size_t a_start = delta_start + N-1;
 //
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
-const double ref_v = 65;
+const double ref_v = 75;
 
-const double weight_cte = 10.0;
+const double weight_cte = 20.0;
 const double weight_epsi = 1.0;
 const double weight_v = 1.0;
-const double weight_delta = 10.0;
-const double weight_a = 10.0;
-const double weight_diff_delta = 1000.0;
-const double weight_diff_a = 1.0;
+const double weight_delta = 200.0;
+const double weight_a = 20.0;
+const double weight_diff_delta = 2000.0;
+const double weight_diff_a = 20.0;
 
 class FG_eval {
  public:
@@ -60,8 +60,8 @@ class FG_eval {
     }
 
     for(int i=0; i<N-1; i++){
-      fg[0] += weight_delta* CppAD::pow(vars[delta_start+i],2);
-      fg[0] += weight_a*CppAD::pow(vars[a_start+i],2);
+      fg[0] += weight_delta * CppAD::pow(vars[delta_start+i],2);
+      fg[0] += weight_a * CppAD::pow(vars[a_start+i],2);
     }
 
     for(int i=0; i<N-2; i++){
@@ -106,8 +106,7 @@ class FG_eval {
       fg[1+psi_start+i] = psi1 - (psi0 + (v0 * delta0 /Lf * dt));
       fg[1+v_start+i] = v1 - (v0 + a0 * dt);
       fg[1+cte_start+i] = cte1 -( (f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-      fg[1+epsi_start+i] = epsi1 - ( (psi0 - dpsi0) - (v0 * delta0/Lf * dt));
-      
+      fg[1+epsi_start+i] = epsi1 - ( (psi0 - dpsi0) - (v0 * delta0/Lf * dt));  
     }
   }
 };
@@ -146,12 +145,12 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   double cte  = state[4];
   double epsi = state[5];
 
-  // vars[x_start] = x;
-  // vars[y_start] = y;
-  // vars[psi_start] = psi;
-  // vars[v_start] = v;
-  // vars[cte_start] = cte;
-  // vars[epsi_start] = epsi;
+  vars[x_start] = x;
+  vars[y_start] = y;
+  vars[psi_start] = psi;
+  vars[v_start] = v;
+  vars[cte_start] = cte;
+  vars[epsi_start] = epsi;
 
 
   Dvector vars_lowerbound(n_vars);
@@ -232,13 +231,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // cout<<"Solution: "<< solution<<endl;
   // Cost
   auto cost = solution.obj_value;
-  std::cout << "Cost " << cost << std::endl;
+  std::cout << "Cost: " << cost << std::endl;
 
 
   //re-initialize
   this->N_x = {};
   this->N_y = {};
-  
+
   for(int i = 0 ;i<N; i++){
     this->N_x.push_back(solution.x[x_start+i]);
     this->N_y.push_back(solution.x[y_start+i]);    
