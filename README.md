@@ -16,8 +16,34 @@ The goals / steps of this project are the following:
 ## Actuator Constraints
 
 Vehicle can't have steering angle of 90 degrees, such conditions can be fixed by setting a lower and upper bound for actuators:
+
 <a href="https://www.codecogs.com/eqnedit.php?latex=\delta&space;\in&space;[-25^{\circ},&space;25^{\circ}]\par&space;a&space;\in&space;[-1,&space;&plus;1]" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\delta&space;\in&space;[-25^{\circ},&space;25^{\circ}]\par&space;a&space;\in&space;[-1,&space;&plus;1]" title="\delta \in [-25^{\circ}, 25^{\circ}]\par a \in [-1, +1]" /></a>
 
+## Prediction Horizon
+
+The prediction horizon is the duration over which future predictions are made. 
+
+N dt are the hyperparameters to tune for each model predictive controller. The general guidelines is to have N as large as possible, while dt should be as small as possible.
+
+I tested my model with dt= 0.01 and N=5, which was not enough input for the model to control the vehicle. I then increased dt to 0.05 and N to 10 which significanlty improved my model.
+
+## Optimizing cost
+
+Model's goal is to minimize errors:
+ * cte: distance of vehicle from trajectory
+ * epsi: difference of vehicle orientation and trajectory
+
+This model also considers additional costs to penalize vehicle:
+ * for not maintaining the reference velocity (60mph)
+ * control-input magnitude & change rate  as well as th3e differences from the next control-input state
+
+However I added more weights to some of the costs to add more penalty to the model for a smoother driving:
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=i&space;\in&space;[0:N]\par&space;cost_{i}&space;=&space;20*cte_{i}^{2}\par&space;cost_{i}&space;&plus;=&space;e\psi_{i}^{2}\par&space;cost_{i}&space;&plus;=&space;(v_{i}-v_{ref})^{2}\par" target="_blank"><img src="https://latex.codecogs.com/gif.latex?i&space;\in&space;[0:N]\par&space;cost_{i}&space;=&space;20*cte_{i}^{2}\par&space;cost_{i}&space;&plus;=&space;e\psi_{i}^{2}\par&space;cost_{i}&space;&plus;=&space;(v_{i}-v_{ref})^{2}\par" title="i \in [0:N]\par cost_{i} = 20*cte_{i}^{2}\par cost_{i} += e\psi_{i}^{2}\par cost_{i} += (v_{i}-v_{ref})^{2}\par" /></a>
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=i&space;\in&space;[0:N-1]\par&space;cost_{i}&space;&plus;=&space;200&space;*&space;\delta_{t}^{2}\par&space;cost_{i}&space;&plus;=&space;20&space;*&space;a_{t}^{2}\par" target="_blank"><img src="https://latex.codecogs.com/gif.latex?i&space;\in&space;[0:N-1]\par&space;cost_{i}&space;&plus;=&space;200&space;*&space;\delta_{t}^{2}\par&space;cost_{i}&space;&plus;=&space;20&space;*&space;a_{t}^{2}\par" title="i \in [0:N-1]\par cost_{i} += 200 * \delta_{t}^{2}\par cost_{i} += 20 * a_{t}^{2}\par" /></a>
+
+<a href="https://www.codecogs.com/eqnedit.php?latex=i&space;\in&space;[0:N-2]\par&space;cost_{i}&space;&plus;=&space;2000&space;*&space;(\delta_{t&plus;1}&space;-&space;\delta_{t})^{2}\par&space;cost_{}&space;&plus;=&space;20&space;*&space;(a_{t&plus;1}&space;-&space;a_{t})^{2}\par" target="_blank"><img src="https://latex.codecogs.com/gif.latex?i&space;\in&space;[0:N-2]\par&space;cost_{i}&space;&plus;=&space;2000&space;*&space;(\delta_{t&plus;1}&space;-&space;\delta_{t})^{2}\par&space;cost_{}&space;&plus;=&space;20&space;*&space;(a_{t&plus;1}&space;-&space;a_{t})^{2}\par" title="i \in [0:N-2]\par cost_{i} += 2000 * (\delta_{t+1} - \delta_{t})^{2}\par cost_{} += 20 * (a_{t+1} - a_{t})^{2}\par" /></a>
 ---
 
 ## Dependencies
