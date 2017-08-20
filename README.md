@@ -10,11 +10,6 @@ The goals / steps of this project are the following:
 * Step 4: feeding states to the model to solve and optimize the costs and thereby calculate the state and actuator values at t+1
 * Step 5: adjusting throttle & steering values based on predictions
 
-<video width="400" controls>
-  <source src="./images/final.mp4" type="video/mp4">
-  Your browser does not support HTML5 video.
-</video>
-
 ## Vehicle Model
 <a href="https://www.codecogs.com/eqnedit.php?latex=x_{t&plus;1}&space;=&space;x_{t}&space;&plus;&space;v_{t}&space;*&space;cos(\psi_{t})&space;*&space;d_{t}\par&space;y_{t&plus;1}&space;=&space;y_{t}&space;&plus;&space;v_{t}&space;*&space;sin(\psi_{t})&space;*&space;d_{t}\par&space;v_{t&plus;1}&space;=&space;v_{t}&space;&plus;&space;a_{t}&space;*&space;d_{t}\par&space;\psi_{t&plus;1}&space;=&space;\psi_{t}&space;-&space;(v_{t}/L_{f})&space;*&space;\delta_{t}&space;*&space;d_{t}\par&space;cte_{t&plus;1}&space;=&space;f(x_{t})&space;-&space;y_{t}&space;&plus;&space;v_{t}&space;*&space;sin(e\psi_{t})&space;*&space;d_{t}\par&space;e\psi_{t&plus;1}&space;=&space;\psi_{t}&space;-&space;d\psi_{t}&space;&plus;&space;(v_{t}/L_{f})&space;*&space;\delta_{t}&space;*&space;d_{t}\par" target="_blank"><img src="https://latex.codecogs.com/gif.latex?x_{t&plus;1}&space;=&space;x_{t}&space;&plus;&space;v_{t}&space;*&space;cos(\psi_{t})&space;*&space;d_{t}\par&space;y_{t&plus;1}&space;=&space;y_{t}&space;&plus;&space;v_{t}&space;*&space;sin(\psi_{t})&space;*&space;d_{t}\par&space;v_{t&plus;1}&space;=&space;v_{t}&space;&plus;&space;a_{t}&space;*&space;d_{t}\par&space;\psi_{t&plus;1}&space;=&space;\psi_{t}&space;-&space;(v_{t}/L_{f})&space;*&space;\delta_{t}&space;*&space;d_{t}\par&space;cte_{t&plus;1}&space;=&space;f(x_{t})&space;-&space;y_{t}&space;&plus;&space;v_{t}&space;*&space;sin(e\psi_{t})&space;*&space;d_{t}\par&space;e\psi_{t&plus;1}&space;=&space;\psi_{t}&space;-&space;d\psi_{t}&space;&plus;&space;(v_{t}/L_{f})&space;*&space;\delta_{t}&space;*&space;d_{t}\par" title="x_{t+1} = x_{t} + v_{t} * cos(\psi_{t}) * d_{t}\par y_{t+1} = y_{t} + v_{t} * sin(\psi_{t}) * d_{t}\par v_{t+1} = v_{t} + a_{t} * d_{t}\par \psi_{t+1} = \psi_{t} - (v_{t}/L_{f}) * \delta_{t} * d_{t}\par cte_{t+1} = f(x_{t}) - y_{t} + v_{t} * sin(e\psi_{t}) * d_{t}\par e\psi_{t+1} = \psi_{t} - d\psi_{t} + (v_{t}/L_{f}) * \delta_{t} * d_{t}\par" /></a>
 
