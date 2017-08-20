@@ -11,7 +11,7 @@ The goals / steps of this project are the following:
 * Step 5: adjusting throttle & steering values based on predictions
 
 <video width="400" controls>
-  <source src="mov_bbb.mp4" type="video/mp4">
+  <source src="./images/final.mp4" type="video/mp4">
   Your browser does not support HTML5 video.
 </video>
 
