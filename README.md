@@ -36,7 +36,7 @@ Model's goal is to minimize errors:
  * epsi: difference of vehicle orientation and trajectory
 
 This model also considers additional costs to penalize vehicle:
- * for not maintaining the reference velocity (60mph)
+ * for not maintaining the reference velocity (75mph)
  * control-input magnitude & change rate  as well as th3e differences from the next control-input state
 
 However I added more weights to some of the costs to add more penalty to the model for a smoother driving:
@@ -47,7 +47,7 @@ However I added more weights to some of the costs to add more penalty to the mod
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=i&space;\in&space;[0:N-2]\par&space;cost_{i}&space;&plus;=&space;2000&space;*&space;(\delta_{t&plus;1}&space;-&space;\delta_{t})^{2}\par&space;cost_{}&space;&plus;=&space;20&space;*&space;(a_{t&plus;1}&space;-&space;a_{t})^{2}\par" target="_blank"><img src="https://latex.codecogs.com/gif.latex?i&space;\in&space;[0:N-2]\par&space;cost_{i}&space;&plus;=&space;2000&space;*&space;(\delta_{t&plus;1}&space;-&space;\delta_{t})^{2}\par&space;cost_{}&space;&plus;=&space;20&space;*&space;(a_{t&plus;1}&space;-&space;a_{t})^{2}\par" title="i \in [0:N-2]\par cost_{i} += 2000 * (\delta_{t+1} - \delta_{t})^{2}\par cost_{} += 20 * (a_{t+1} - a_{t})^{2}\par" /></a>
 
-Here are the cte, v & steering_angle diagrams that I collected for 1000 iterations:
+Here are the cte, v & steering_angle diagrams that I collected for 1000 iterations, as depicted below majority of cte-values are around 0 which shows model is trying to stay in track, & valocity is maintaining 50mph, steering-angle-values are very similar to cte-values that's most likely happening in the curbs when there's a sharp change in keeping the vehicle in track :
 <table style="width:100%">
   <tr>
     <td>CTE</td>
